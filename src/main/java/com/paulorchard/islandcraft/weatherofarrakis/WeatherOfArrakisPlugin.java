@@ -1,6 +1,7 @@
 package com.paulorchard.islandcraft.weatherofarrakis;
 
 import com.hypixel.hytale.component.ResourceType;
+import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
@@ -37,13 +38,15 @@ public class WeatherOfArrakisPlugin extends JavaPlugin {
 
     @Override
     protected void setup() {
-        writeDefaultConfig();
+        writeConfig();
 
         stormResourceType = getEntityStoreRegistry().registerResource(
                 CoriolisStormResource.class, CoriolisStormResource.ID, CoriolisStormResource.CODEC);
 
         CoriolisStormSystem stormSystem = new CoriolisStormSystem(config::get);
         getEntityStoreRegistry().registerSystem(stormSystem);
+        getEntityStoreRegistry().registerSystem(new CoriolisExposureSystem(config::get));
+        getEntityStoreRegistry().registerSystem(new CoriolisBonesSystem(config::get));
         getCommandRegistry().registerCommand(new CoriolisCommand(stormSystem));
         getEventRegistry().registerGlobal(PlayerReadyEvent.class, stormSystem::onPlayerReady);
 
@@ -51,18 +54,30 @@ public class WeatherOfArrakisPlugin extends JavaPlugin {
                 Arrays.toString(config.get().getGeneratorTypes()));
     }
 
-    /** The server reads the config file but never creates it, so write the defaults on first run. */
-    private void writeDefaultConfig() {
-        Path file = getDataDirectory().resolve(WeatherOfArrakisConfig.FILE_NAME + ".json");
-        if (Files.exists(file)) {
-            return;
+    /** Assets are loaded by now, so say at once if one this mod relies on is missing. */
+    @Override
+    protected void start() {
+        if (CoriolisStormDamage.cause() == null) {
+            getLogger().at(Level.SEVERE).log("Damage cause '%s' is not loaded, so the storm cannot hurt anyone",
+                    CoriolisStormDamage.CAUSE_ID);
         }
+        String boneBlock = config.get().getBoneBlock();
+        if (!boneBlock.isEmpty() && BlockType.getAssetMap().getIndex(boneBlock) == Integer.MIN_VALUE) {
+            getLogger().at(Level.WARNING).log("Bone block '%s' does not exist, so no bones will be placed", boneBlock);
+        }
+    }
+
+    /**
+     * The server reads the config file but never creates it. Writing it back on every start
+     * creates it on first run and adds any setting a newer version of the mod has introduced.
+     */
+    private void writeConfig() {
+        Path file = getDataDirectory().resolve(WeatherOfArrakisConfig.FILE_NAME + ".json");
         try {
             Files.createDirectories(getDataDirectory());
             config.save().join();
-            getLogger().at(Level.INFO).log("Wrote default config to %s", file);
         } catch (Exception e) {
-            getLogger().at(Level.WARNING).withCause(e).log("Could not write default config to %s", file);
+            getLogger().at(Level.WARNING).withCause(e).log("Could not write config to %s", file);
         }
     }
 }

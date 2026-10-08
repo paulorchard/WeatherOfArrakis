@@ -11,7 +11,8 @@
   "ServerVersion": "*",
   "Main": "com.paulorchard.islandcraft.weatherofarrakis.WeatherOfArrakisPlugin",
   "Dependencies": {
-    "Hytale:Weather": "*"
+    "Hytale:Weather": "*",
+    "Hytale:EntityModule": "*"
   },
   "OptionalDependencies": {
     "IslandCraft:IslandCraft - Dunes of Arrakis": "*"

@@ -8,6 +8,9 @@ import com.hypixel.hytale.component.Resource;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * One world's storm state. Saved with the world, so a restart resumes in the same phase.
@@ -56,6 +59,18 @@ public class CoriolisStormResource implements Resource<EntityStore> {
 
     /** Index of the next chat warning to send during APPROACH. -1 means "work it out from the clock". Not saved. */
     transient int nextWarningIndex = -1;
+    /** Real seconds since the last exposure check during STORM. Not saved. */
+    transient double exposureTimer;
+    /** Each player's shelter state for the storm in progress. Emptied on every phase change. Not saved. */
+    final transient Map<UUID, PlayerExposure> exposure = new HashMap<>();
+
+    /** What the exposure checks remember about one player between seconds. */
+    static final class PlayerExposure {
+        /** Exposed checks in a row; 0 when sheltered. */
+        int exposedChecks;
+        /** Null until the player has been told anything. */
+        Boolean toldExposed;
+    }
 
     public CoriolisPhase getPhase() {
         return phase != null ? phase : CoriolisPhase.CALM;

@@ -129,3 +129,57 @@ Not done, needs the game client:
 - CLEARING sends each player the forecast weather with a 30 s blend. If the hour has changed since the storm began, the game rolls a new forecast a tick later and blends to that in its usual 10 s.
 - Stages 5 and 6 use the vanilla sand particles at normal size; only the storm scales them up. `Scale` is described as "the scale of the particle system", which may mean size and not amount.
 - One extra config value, `StageBlendFraction`.
+
+## Prompt 15: exposure, gear loss, death and bones
+
+### Engine facts added
+
+- Directions: `Vector3dUtil.EAST` is +X, `WEST` is -X, `NORTH` is -Z. Running `WorldTimeResource.getSunDirection()` through a day gives light travelling towards -X at 06:00 and towards +X at 18:00, so the sun rises at +X and sets at -X. West is -X. Not checked against the in-game compass.
+- Vanilla drowning (`DamageSystems.CanBreathe`) builds `new Damage(Damage.NULL_SOURCE, DamageCause.DROWNING, 10f)` and passes it to `DamageSystems.executeDamage` with the system's command buffer. Storm damage takes the same route.
+- Damage cause keys: `DurabilityLoss`, `StaminaLoss`, `BypassResistances`, `Inherits`, `DamageTextColor`, `AnimationId`, `DeathAnimationId`. `Environment.json` is `DurabilityLoss: true, StaminaLoss: false, BypassResistances: true`; drowning, suffocation and fall inherit it.
+- `BypassResistances` is read in one place, `DamageSystems.ArmorDamageReduction`, which skips the armour resistance step when it is true. `DurabilityLoss` is read by `DamageArmor`, which is what wears armour when vanilla damage lands.
+- The death message comes from the damage source: `Damage.Source.getDeathMessage`. The default is `server.general.killedBy` with `server.general.damageCauses.<cause id in lower case>`, giving "You were killed by ...!".
+- Dying adds a `DeathComponent`; `DeathSystems.OnDeathSystem` is the base class vanilla uses to react to it.
+- `Inventory.getArmor()`, `getHotbar()`, `getUtility()`, `getTools()` and the active-slot getters are deprecated for removal. The replacement is one component per section: `InventoryComponent.Armor`, `.Hotbar`, `.Utility`, `.Tool`, each with `getInventory()`; the last three also have `getActiveSlot()`, and `Tool.isUsingToolsItem()` says whether the hand holds the tool-belt item.
+- Sky light: `BlockSection.getGlobalLight().getSkyLight(x, y, z)`, 0 to 15, the source the NPC light sensor uses. It is the stored exposure to the sky and does not change with the time of day. A section has none until it has been lit (`hasGlobalLight()`).
+- `WorldChunk.getHeight(x, z)` is the height map; `getBlockType(x, y, z)` takes world coordinates.
+- Block properties: `Material` is `Empty` or `Solid`; `HitboxType` defaults to `Full`. `WorldChunk.setBlock(x, y, z, id, type, rotation, filler, settings)` places a block; rotation is a `RotationTuple` index.
+- Bone blocks: `Deco_Bone_Full` is a plain cube named "Bone", not a skeleton. `Deco_Bone_Pile` ("Pile of Bones") and `Deco_Bone_Skulls` ("Pile of Skulls") are ground decorations with a client-side random yaw (`RandomRotation: YawStep1`) and no rotation variants. `Deco_Bone_Ribs`, `Ribs_Long` and `Spine` are tube and wall pieces that need support.
+- `SFX_Item_Break` is the sound vanilla plays when an item breaks.
+
+### What was built
+
+- `CoriolisExposureSystem`: once a second during STORM, for each living non-Creative player: shelter check, messages on a change of state, then gear and health loss after the grace.
+- `StormShelter`: the rules, with no server types in them. `WorldBlocks` reads the live world for it.
+- `CoriolisStormDamage`: the damage source, with the death message. Recognise storm damage by cause id `Arrakis_Coriolis_Storm` or by `damage.getSource() instanceof CoriolisStormDamage`.
+- `CoriolisBonesSystem`: places the bone block when a player dies during STORM.
+- New config values: `WindFrom` West, `DeepCoverSkyLight` 2, `RoofBlocks` 3, `WindbreakBlocks` 2, `ExposureGraceChecks` 2, `DurabilityLossPerSecond` 4, `HealthLossArmoured` 2, `HealthLossStripped` 10, `BoneBlock` Deco_Bone_Pile. The config file is now rewritten on every start so an older file gains the new keys.
+
+### Decisions
+
+- Solid means `Material: Solid` and `HitboxType: Full`. Plants are material Empty. Doors, fences, slabs, stairs, torches and the bone piles have other hitboxes and do not count. Fluids are stored apart from blocks and never count. Leaves are full solid blocks and do count.
+- The damage cause is `DurabilityLoss: false, StaminaLoss: false, BypassResistances: true`. It does not inherit `Environment`, because that would switch vanilla armour wear back on and the storm already takes durability itself.
+- The exposure message is sent on the first exposed check, before the grace has run out, so the player has the two seconds to react. The first state of each storm is announced to everyone, sheltered or not.
+- Health loss is decided after the gear step, so the second the last armour piece is torn away already costs 10.
+- An item already at 0 durability (vanilla "broken") is taken on the first damaging second.
+- The bone block defaults to `Deco_Bone_Pile`, not `Deco_Bone_Full`. Neither has been looked at in game.
+- Bones: death position, then down up to 8, then the eight neighbours at the death height. A spot must hold no block and no fluid and have a solid block under it.
+- Block lookups per exposed player per second, worst case: 1 height map, 1 sky light, 3 block types for the roof, 4 for the windbreak. Nine in all; a sheltered cave costs two and open sand one.
+
+### Checks
+
+Done:
+
+- 11 unit tests of the shelter rules pass (`gradlew test`): open sand, cave, closed room, lee side under an overhang, windward side, floating block, west doorway, roof 4 up, feet exposed through a gap, unknown sky light, east doorway.
+- Headless server: the damage cause loads (16 causes, 15 vanilla), the config gains the new keys, a storm runs from start to clearing with both new systems registered and nothing logged.
+- Clean build, deployed, one jar.
+
+Not done, needs a player in the game: every check in the prompt's list. Nothing that touches a player has run: the messages, durability loss, items vanishing, the break sound, health loss at 2 and 10, Creative mode, the death message, bones and their placement cases, the shelter cases on real terrain and their screenshots, tick time.
+
+### Expected to differ from the design
+
+- Doorway open to the east: the design wants it sheltered, the rules as written make it exposed unless the room is at most 2 blocks deep. Standing in the doorway the sky light is high, and the nearest solid block upwind is the far wall. The unit test `doorwayOpenToTheEastIsExposedUnderTheRulesAsWritten` pins this.
+  Suggested rule: let the windbreak search carry on under a roof. Walk upwind from the player; keep going while each block passed has a solid roof within `RoofBlocks`; the player is sheltered if a solid block is reached at both feet and head height before the roof runs out, up to about 16 blocks. A west doorway still fails, because its opening is reached before any wall.
+- Closed room with a window or an open door: the same thing. Anyone more than 2 blocks from the west wall is exposed unless the room is dark enough for deep cover. The rule above fixes this too.
+- Whether a shield raised against the storm reduces the damage is not known. `WieldingDamageReduction` does not look at `BypassResistances`; it may only act on hits with a direction.
+- Hurt sound and flash once a second: not heard. If it is too much, deal the health loss every 2 seconds at double the amount; the kill time stays the same.
