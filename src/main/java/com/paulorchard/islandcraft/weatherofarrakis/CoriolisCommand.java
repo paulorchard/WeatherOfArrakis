@@ -1,32 +1,38 @@
 package com.paulorchard.islandcraft.weatherofarrakis;
 
+import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractCommandCollection;
+import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractWorldCommand;
 import com.hypixel.hytale.server.core.modules.time.WorldTimeResource;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+
+import org.joml.Vector3d;
 
 import java.time.Duration;
 import java.util.Locale;
 
 /**
- * /coriolis status | start [approachSeconds] [stormSeconds] | stop.
+ * /coriolis status | start [approachSeconds] [stormSeconds] | stop | strike [x z].
  * No permission group is set, so only operators can run it.
  */
 public class CoriolisCommand extends AbstractCommandCollection {
 
     private static final String LANG = "server.commands.coriolis.";
 
-    public CoriolisCommand(CoriolisStormSystem system) {
+    public CoriolisCommand(CoriolisStormSystem system, CoriolisLightningSystem lightning) {
         super("coriolis", LANG + "desc");
         addSubCommand(new StatusCommand(system));
         addSubCommand(new StartCommand(system));
         addSubCommand(new StopCommand(system));
+        addSubCommand(new StrikeCommand(lightning));
     }
 
     private static String number(double value, int decimals) {
@@ -147,6 +153,54 @@ public class CoriolisCommand extends AbstractCommandCollection {
                 return;
             }
             context.sendMessage(Message.translation(LANG + (system.stop(world, store) ? "stop.done" : "stop.notActive")));
+        }
+    }
+
+    private static void strike(CoriolisLightningSystem lightning, CommandContext context, World world,
+                               Store<EntityStore> store, int x, int z) {
+        boolean struck = lightning.strikeAt(world, store, x, z);
+        context.sendMessage(Message.translation(LANG + (struck ? "strike.done" : "strike.notLoaded"))
+                .param("x", x).param("z", z));
+    }
+
+    /** /coriolis strike: a lightning strike on the spot where the caller stands. For testing, in any phase. */
+    private static class StrikeCommand extends AbstractPlayerCommand {
+
+        private final CoriolisLightningSystem lightning;
+
+        StrikeCommand(CoriolisLightningSystem lightning) {
+            super("strike", LANG + "strike.desc");
+            this.lightning = lightning;
+            addUsageVariant(new StrikeAtCommand(lightning));
+        }
+
+        @Override
+        protected void execute(CommandContext context, Store<EntityStore> store, Ref<EntityStore> ref,
+                               PlayerRef playerRef, World world) {
+            Vector3d position = CoriolisEffects.position(store, playerRef);
+            if (position != null) {
+                strike(lightning, context, world, store, (int) Math.floor(position.x()), (int) Math.floor(position.z()));
+            }
+        }
+    }
+
+    /** /coriolis strike x z: a strike on the top block of that column. Works from the console too. */
+    private static class StrikeAtCommand extends AbstractWorldCommand {
+
+        private final CoriolisLightningSystem lightning;
+        private final RequiredArg<Integer> xArg;
+        private final RequiredArg<Integer> zArg;
+
+        StrikeAtCommand(CoriolisLightningSystem lightning) {
+            super(LANG + "strike.desc");
+            this.lightning = lightning;
+            xArg = withRequiredArg("x", LANG + "strike.x.desc", ArgTypes.INTEGER);
+            zArg = withRequiredArg("z", LANG + "strike.z.desc", ArgTypes.INTEGER);
+        }
+
+        @Override
+        protected void execute(CommandContext context, World world, Store<EntityStore> store) {
+            strike(lightning, context, world, store, xArg.get(context), zArg.get(context));
         }
     }
 }

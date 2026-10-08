@@ -1,8 +1,10 @@
 // Writes the Coriolis weather and ambience assets from the tables below.
+// Lightning, thunder, camera shakes and the storm front are in effects.js and written by this script too.
 // usage: node tools/weathers/build.js
 // Edit the tables, run it, then gradlew deployMod. The JSON files it writes are committed.
 const fs = require('fs');
 const path = require('path');
+const effects = require('./effects');
 
 const root = path.resolve(__dirname, '../../src/main/resources/Server');
 const weatherDir = path.join(root, 'Weathers/Weather_of_Arrakis');
@@ -150,5 +152,8 @@ function writeAll(dir, assets) {
   console.log(`${Object.keys(assets).length} files in ${path.relative(process.cwd(), dir)}`);
 }
 
-writeAll(weatherDir, Object.fromEntries(stages.map(s => [s.id, weather(s)])));
+const weathers = Object.fromEntries(stages.map(s => [s.id, weather(s)]));
+weathers.Arrakis_Coriolis_Flash = effects.flashWeather(weathers.Arrakis_Coriolis_Storm, { format, mix });
+writeAll(weatherDir, weathers);
 writeAll(ambienceDir, ambience);
+effects.writeEffects(root);

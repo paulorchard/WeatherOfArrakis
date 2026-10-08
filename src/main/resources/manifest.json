@@ -12,7 +12,8 @@
   "Main": "com.paulorchard.islandcraft.weatherofarrakis.WeatherOfArrakisPlugin",
   "Dependencies": {
     "Hytale:Weather": "*",
-    "Hytale:EntityModule": "*"
+    "Hytale:EntityModule": "*",
+    "Hytale:Camera": "*"
   },
   "OptionalDependencies": {
     "IslandCraft:IslandCraft - Dunes of Arrakis": "*"

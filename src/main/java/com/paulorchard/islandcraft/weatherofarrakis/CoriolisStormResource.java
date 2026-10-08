@@ -64,6 +64,13 @@ public class CoriolisStormResource implements Resource<EntityStore> {
     /** Each player's shelter state for the storm in progress. Emptied on every phase change. Not saved. */
     final transient Map<UUID, PlayerExposure> exposure = new HashMap<>();
 
+    /** Real seconds until the next lightning strike. Not saved. */
+    transient double lightningTimer;
+    /** Real seconds until the storm front is drawn again. Not saved. */
+    transient double frontTimer;
+    /** Players currently seeing a lightning flash, and the seconds each has left. Not saved. */
+    final transient Map<UUID, Double> flashes = new HashMap<>();
+
     /** What the exposure checks remember about one player between seconds. */
     static final class PlayerExposure {
         /** Exposed checks in a row; 0 when sheltered. */

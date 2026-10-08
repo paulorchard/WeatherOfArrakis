@@ -216,7 +216,10 @@ public class CoriolisStormSystem extends TickingSystem<EntityStore> {
         state.phase = phase;
         state.phaseElapsedSeconds = 0.0;
         state.exposureTimer = 0.0;
+        state.lightningTimer = 0.0;
+        state.frontTimer = 0.0;
         state.exposure.clear();
+        state.flashes.clear();
         if (previous != phase) {
             CoriolisStorm.firePhaseChange(world, previous, phase);
         }

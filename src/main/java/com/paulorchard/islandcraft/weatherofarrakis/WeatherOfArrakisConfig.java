@@ -105,6 +105,76 @@ public class WeatherOfArrakisConfig {
                             config -> config.boneBlock)
                     .documentation("Block left where a player dies during the storm. Empty for none.")
                     .add()
+                    .append(new KeyedCodec<>("LightningMinSeconds", Codec.DOUBLE, false),
+                            (config, value) -> config.lightningMinSeconds = value,
+                            config -> config.lightningMinSeconds)
+                    .documentation("Shortest gap between lightning strikes during the storm, in seconds.")
+                    .add()
+                    .append(new KeyedCodec<>("LightningMaxSeconds", Codec.DOUBLE, false),
+                            (config, value) -> config.lightningMaxSeconds = value,
+                            config -> config.lightningMaxSeconds)
+                    .documentation("Longest gap between lightning strikes, in seconds.")
+                    .add()
+                    .append(new KeyedCodec<>("LightningMinDistance", Codec.DOUBLE, false),
+                            (config, value) -> config.lightningMinDistance = value,
+                            config -> config.lightningMinDistance)
+                    .documentation("Nearest a strike lands to the player it was rolled for, in blocks.")
+                    .add()
+                    .append(new KeyedCodec<>("LightningMaxDistance", Codec.DOUBLE, false),
+                            (config, value) -> config.lightningMaxDistance = value,
+                            config -> config.lightningMaxDistance)
+                    .documentation("Farthest a strike lands from that player, in blocks.")
+                    .add()
+                    .append(new KeyedCodec<>("LightningDamageRadius", Codec.DOUBLE, false),
+                            (config, value) -> config.lightningDamageRadius = value,
+                            config -> config.lightningDamageRadius)
+                    .documentation("Exposed players within this many blocks of a strike are hurt.")
+                    .add()
+                    .append(new KeyedCodec<>("LightningDamage", Codec.DOUBLE, false),
+                            (config, value) -> config.lightningDamage = value,
+                            config -> config.lightningDamage)
+                    .documentation("Health a strike takes from an exposed player in range. 0 turns it off.")
+                    .add()
+                    .append(new KeyedCodec<>("LightningFlash", Codec.BOOLEAN, false),
+                            (config, value) -> config.lightningFlash = value,
+                            config -> config.lightningFlash)
+                    .documentation("Briefly brightens the sky for players near a strike.")
+                    .add()
+                    .append(new KeyedCodec<>("LightningShakeRadius", Codec.DOUBLE, false),
+                            (config, value) -> config.lightningShakeRadius = value,
+                            config -> config.lightningShakeRadius)
+                    .documentation("Players within this many blocks of a strike get a camera jolt.")
+                    .add()
+                    .append(new KeyedCodec<>("LightningShakeIntensity", Codec.DOUBLE, false),
+                            (config, value) -> config.lightningShakeIntensity = value,
+                            config -> config.lightningShakeIntensity)
+                    .documentation("Strength of that jolt right at the strike. 0 turns it off.")
+                    .add()
+                    .append(new KeyedCodec<>("ArrivalShakeIntensity", Codec.DOUBLE, false),
+                            (config, value) -> config.arrivalShakeIntensity = value,
+                            config -> config.arrivalShakeIntensity)
+                    .documentation("Strength of the camera shake as the storm arrives. Sheltered players get half. 0 turns it off.")
+                    .add()
+                    .append(new KeyedCodec<>("ExposedTremble", Codec.BOOLEAN, false),
+                            (config, value) -> config.exposedTremble = value,
+                            config -> config.exposedTremble)
+                    .documentation("Faint camera tremble for as long as a player is exposed.")
+                    .add()
+                    .append(new KeyedCodec<>("ExposedTrembleIntensity", Codec.DOUBLE, false),
+                            (config, value) -> config.exposedTrembleIntensity = value,
+                            config -> config.exposedTrembleIntensity)
+                    .documentation("Strength of that tremble.")
+                    .add()
+                    .append(new KeyedCodec<>("StormFront", Codec.BOOLEAN, false),
+                            (config, value) -> config.stormFront = value,
+                            config -> config.stormFront)
+                    .documentation("Experimental: a wall of sand on the upwind horizon that closes in during the approach.")
+                    .add()
+                    .append(new KeyedCodec<>("StormFrontDistance", Codec.DOUBLE, false),
+                            (config, value) -> config.stormFrontDistance = value,
+                            config -> config.stormFrontDistance)
+                    .documentation("How far away the wall starts, in blocks.")
+                    .add()
                     .build();
 
     private double stormIntervalMinDays = 3.0;
@@ -125,6 +195,20 @@ public class WeatherOfArrakisConfig {
     private double healthLossArmoured = 2.0;
     private double healthLossStripped = 10.0;
     private String boneBlock = "Deco_Bone_Pile";
+    private double lightningMinSeconds = 2.0;
+    private double lightningMaxSeconds = 6.0;
+    private double lightningMinDistance = 12.0;
+    private double lightningMaxDistance = 60.0;
+    private double lightningDamageRadius = 3.0;
+    private double lightningDamage = 25.0;
+    private boolean lightningFlash = true;
+    private double lightningShakeRadius = 20.0;
+    private double lightningShakeIntensity = 0.03;
+    private double arrivalShakeIntensity = 0.08;
+    private boolean exposedTremble = true;
+    private double exposedTrembleIntensity = 0.008;
+    private boolean stormFront = false;
+    private double stormFrontDistance = 120.0;
 
     public double getStormIntervalMinDays() {
         return Math.max(0.0, Math.min(stormIntervalMinDays, stormIntervalMaxDays));
@@ -196,5 +280,61 @@ public class WeatherOfArrakisConfig {
 
     public String getBoneBlock() {
         return boneBlock != null ? boneBlock : "";
+    }
+
+    public double getLightningMinSeconds() {
+        return Math.max(0.0, lightningMinSeconds);
+    }
+
+    public double getLightningMaxSeconds() {
+        return Math.max(0.0, lightningMaxSeconds);
+    }
+
+    public double getLightningMinDistance() {
+        return Math.max(0.0, lightningMinDistance);
+    }
+
+    public double getLightningMaxDistance() {
+        return Math.max(0.0, lightningMaxDistance);
+    }
+
+    public double getLightningDamageRadius() {
+        return Math.max(0.0, lightningDamageRadius);
+    }
+
+    public double getLightningDamage() {
+        return Math.max(0.0, lightningDamage);
+    }
+
+    public boolean isLightningFlash() {
+        return lightningFlash;
+    }
+
+    public double getLightningShakeRadius() {
+        return Math.max(0.0, lightningShakeRadius);
+    }
+
+    public double getLightningShakeIntensity() {
+        return Math.max(0.0, lightningShakeIntensity);
+    }
+
+    public double getArrivalShakeIntensity() {
+        return Math.max(0.0, arrivalShakeIntensity);
+    }
+
+    public boolean isExposedTremble() {
+        return exposedTremble;
+    }
+
+    public double getExposedTrembleIntensity() {
+        return Math.max(0.0, exposedTrembleIntensity);
+    }
+
+    public boolean isStormFront() {
+        return stormFront;
+    }
+
+    public double getStormFrontDistance() {
+        return Math.max(0.0, stormFrontDistance);
     }
 }

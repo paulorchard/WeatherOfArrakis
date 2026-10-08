@@ -183,3 +183,58 @@ Not done, needs a player in the game: every check in the prompt's list. Nothing 
 - Closed room with a window or an open door: the same thing. Anyone more than 2 blocks from the west wall is exposed unless the room is dark enough for deep cover. The rule above fixes this too.
 - Whether a shield raised against the storm reduces the damage is not known. `WieldingDamageReduction` does not look at `BypassResistances`; it may only act on hits with a direction.
 - Hurt sound and flash once a second: not heard. If it is too much, deal the health loss every 2 seconds at double the amount; the kill time stays the same.
+
+## Prompt 16: lightning, camera shake, storm front
+
+### Engine facts added
+
+- `ParticleUtil.spawnParticleEffect(id, position, accessor)` sends to players within `DEFAULT_PARTICLE_DISTANCE`, 75 blocks. The overloads that take a list of player refs send to exactly those players at any distance.
+- A particle system has `CullDistance`, `BoundingRadius` and `IsImportant`; vanilla values of `CullDistance` run from 1 to 1000. A particle has `CameraFarFadeStartDistance` and `CameraFarFadeEndDistance`. Spawner `RenderMode` values seen: `BlendLinear`, `BlendAdd`. `LightInfluence` 0 means unlit (the spell lightning); the vanilla sand storm uses 0.6.
+- The weather's own `Particle` system follows the camera (`PositionOffsetMultiplier` moves it ahead of the view), so it cannot sit in one compass direction.
+- Spell lightning: `Lightning_Trail` draws `Particles/Textures/Shapes/Lightning.png` (three 64 x 128 frames) with `BlendAdd`, `BillboardY`, scale 1 to 1.6 by 20, over an emit column 4.5 high.
+- `SoundUtil.playSoundEvent3d(index, category, x, y, z, float, float, accessor)`: the floats are volume modifier and pitch modifier (the packet fields `volumeModifier`, `pitchModifier`).
+- Sound event keys: `Volume` (dB), `Pitch`, `StartAttenuationDistance`, `MaxDistance`, `Layers` (each with `Files`, `Volume`, `RandomSettings`, `StartDelay`), `PreventSoundInterruption`. The vanilla thunder event has a 1.5 s start delay and inherits `SFX_Attn_Quiet` (heard to 15 blocks); the loudest preset, `SFX_Attn_VeryLoud`, reaches 70.
+- Camera shake: a `CameraShake` asset has `FirstPerson` and `ThirdPerson`, each with `Duration`, `EaseIn`, `EaseOut` (`Time`, `Type`) and noise lists for `Offset` X/Y/Z and `Rotation` Pitch/Yaw/Roll (`Frequency`, `Amplitude`, `Type`: Sin, Cos, Perlin_Linear, Perlin_Hermite, Perlin_Quintic, Random). Vanilla only uses Sin and Cos, on roll.
+- A shake is played by sending `CameraShakeEffect(cameraShakeIndex, intensity, AccumulationMode)` with `PacketHandler.writeNoCache`. `CameraEffect` assets are a wrapper that supplies the intensity; vanilla intensities are 0.05 with amplitudes of 0.5 to 1.5. The camera classes belong to the `Hytale:Camera` plugin, now a dependency.
+- Cloud layers have `Texture`, `Colors` and `Speeds` and nothing else: no direction, offset or coverage key.
+- With no player connected no chunks are loaded, so the headless server cannot run anything that needs a block position.
+
+### What was built
+
+- `CoriolisLightningSystem`: during STORM, every 2 to 6 s, one strike per cluster of players (within 96 blocks of each other), 12 to 60 blocks from a random member, on the top block of that column. Each strike: bolt particles to players within 300 blocks, thunder at the spot, a camera jolt within 20 blocks that weakens with distance, a sky flash within 96 blocks, and 25 damage to exposed, living, non-Creative players within 3 blocks.
+- Bolt: new particle system `Arrakis_Coriolis_Lightning`. The spell bolt is about 4.5 blocks of emit height; this one stacks 14 copies of the same texture up a 40-block column at 3 to 5 by 24 scale, unlit and additive, for under half a second, with a soft ball of light and the vanilla sparks and poof at the foot.
+- Thunder: new sound event `Arrakis_SFX_Coriolis_Thunder`, the three vanilla recordings with no delay, +4 dB on the event and +6 dB on the layer, full volume to 40 blocks and audible to 160.
+- Flash: a one-moment weather swap. `Arrakis_Coriolis_Flash` is the storm weather with white sunlight and brightened fog and sky. A nearby player gets it as a per-player override with a 0.05 s blend, and the storm back 0.15 s later with a 0.4 s blend. It carries the storm's tag so the sound beds should not react. Switch: `LightningFlash`.
+- Shakes: `Arrakis_Coriolis_Arrival` (about 2 s, fading), `Arrakis_Coriolis_Lightning` (under half a second), `Arrakis_Coriolis_Tremble` (just over a second, re-sent on every exposed check). Strengths are config values, sent directly in the packet.
+- `/coriolis strike` hits the caller's own column; `/coriolis strike x z` hits a chosen one and works from the console. Both work in any phase.
+- Storm front, option A: `CoriolisFrontSystem` and the particle system `Arrakis_Coriolis_Front`, off by default (`StormFront`).
+- Config additions: `LightningMinSeconds` 2, `LightningMaxSeconds` 6, `LightningMinDistance` 12, `LightningMaxDistance` 60, `LightningDamageRadius` 3, `LightningDamage` 25, `LightningFlash` true, `LightningShakeRadius` 20, `LightningShakeIntensity` 0.03, `ArrivalShakeIntensity` 0.08, `ExposedTremble` true, `ExposedTrembleIntensity` 0.008, `StormFront` false, `StormFrontDistance` 120.
+
+### Storm front: where the three options stand
+
+None has been seen, so none has been judged.
+
+- A, particle wall: built. Every 2.5 s each player is sent, to them alone, a curtain of 90 soft sand-coloured puffs (scale 28 to 40, about 5 s life) spread 70 high and 140 to each side, placed upwind at `StormFrontDistance` x (time left / approach length). Lit by the world so it darkens at night. One packet per player per 2.5 s on the server. Open questions, all for the client: whether particles draw at 120 blocks (`CullDistance` is set to 600; vanilla goes to 1000), whether one particle can be that large, whether the approach fog hides it (stages 1 to 4 keep FogFar at 1024 with density up to 0.45), and the frame-rate cost of 180 or so large overlapping transparent quads.
+- B, cloud layer: not built. A cloud layer has no direction or offset key, so the server cannot choose which way a band crosses the sky; it would depend on how the client maps and scrolls the texture, and that is only found by looking. It also needs a painted texture, which cannot be judged blind.
+- C, horizon tint: ruled out without building. `SkySunsetColors` is keyed by hour only and is drawn around the sun. It would sit in the west only when the sun does, which fails "at any hour".
+
+To try A: set `StormFront` to true in the save's config, reload the world, `/coriolis start`. If it does not convince, delete `CoriolisFrontSystem`, the `front` blocks in `tools/weathers/effects.js`, the two config values and the `frontTimer` field.
+
+### Checks
+
+Done on the headless server:
+
+- All new assets load with no warning naming them: 3 particle spawners, 2 particle systems, 1 sound event, 1 weather, 3 camera shakes.
+- The config gains the 14 new keys. A storm runs start to clearing with the lightning and front systems registered; nothing logged.
+- `/coriolis strike x z` runs from the console and reports an unloaded column correctly. With no player there is no loaded column, so no strike has actually gone off.
+- 11 shelter unit tests still pass. Clean build, deployed, one jar.
+
+Not done, needs the game client: every item in the prompt's check list. No bolt, flash, thunder or shake has been seen or heard.
+
+First things to look at, because they are guesses:
+
+- Bolt size and height. `BOLT_HEIGHT` and the scales are in `effects.js`.
+- The flash. If swapping weathers restarts the sand particles, the screen overlay or the sound, it will flicker every few seconds: set `LightningFlash` to false.
+- Shake strengths. 0.08, 0.03 and 0.008 are scaled from vanilla's 0.05; the units are not documented.
+- The tremble. On by default as asked. It is roll and pitch only, at 7 to 13 Hz and a tenth of the arrival strength. If it is unpleasant, set `ExposedTremble` to false and say so, and the default will change.
+- Thunder loudness against the storm bed.

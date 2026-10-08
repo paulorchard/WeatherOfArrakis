@@ -97,11 +97,7 @@ public class CoriolisExposureSystem extends EntityTickingSystem<EntityStore> {
         CoriolisStormResource.PlayerExposure exposure = CoriolisStorm.state(store).exposure
                 .computeIfAbsent(playerRef.getUuid(), uuid -> new CoriolisStormResource.PlayerExposure());
 
-        Vector3d position = transform.getPosition();
-        // The small lift keeps a player standing a hair inside the ground from counting as one block lower.
-        StormShelter.Verdict verdict = StormShelter.check(new WorldBlocks(world),
-                (int) Math.floor(position.x()), (int) Math.floor(position.y() + 0.1), (int) Math.floor(position.z()),
-                cfg.getWindFrom(), cfg.getDeepCoverSkyLight(), cfg.getRoofBlocks(), cfg.getWindbreakBlocks());
+        StormShelter.Verdict verdict = verdictAt(world, transform.getPosition(), cfg);
 
         if (verdict.sheltered) {
             exposure.exposedChecks = 0;
@@ -111,6 +107,10 @@ public class CoriolisExposureSystem extends EntityTickingSystem<EntityStore> {
 
         exposure.exposedChecks++;
         tell(playerRef, exposure, true);
+        if (cfg.isExposedTremble()) {
+            // The clip lasts just over a second, so it stops by itself soon after the last exposed check.
+            CoriolisEffects.shake(playerRef, CoriolisEffects.TREMBLE_SHAKE, cfg.getExposedTrembleIntensity());
+        }
         if (exposure.exposedChecks <= cfg.getExposureGraceChecks()) {
             return;
         }
@@ -118,6 +118,14 @@ public class CoriolisExposureSystem extends EntityTickingSystem<EntityStore> {
         Ref<EntityStore> ref = chunk.getReferenceTo(index);
         boolean armoured = scourGear(store, ref, playerRef, cfg.getDurabilityLossPerSecond());
         hurt(ref, commandBuffer, armoured ? cfg.getHealthLossArmoured() : cfg.getHealthLossStripped());
+    }
+
+    /** The shelter verdict for someone standing at a position. Use on the world's thread. */
+    static StormShelter.Verdict verdictAt(World world, Vector3d position, WeatherOfArrakisConfig cfg) {
+        // The small lift keeps a player standing a hair inside the ground from counting as one block lower.
+        return StormShelter.check(new WorldBlocks(world),
+                (int) Math.floor(position.x()), (int) Math.floor(position.y() + 0.1), (int) Math.floor(position.z()),
+                cfg.getWindFrom(), cfg.getDeepCoverSkyLight(), cfg.getRoofBlocks(), cfg.getWindbreakBlocks());
     }
 
     /** Announces a change between exposed and sheltered, and the first state of the storm. */

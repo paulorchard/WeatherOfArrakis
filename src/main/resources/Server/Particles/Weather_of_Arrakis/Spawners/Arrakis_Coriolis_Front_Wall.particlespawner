@@ -1,0 +1,125 @@
+{
+  "RenderMode": "BlendLinear",
+  "EmitOffset": {
+    "X": {
+      "Min": 0,
+      "Max": 6
+    },
+    "Y": {
+      "Min": 0,
+      "Max": 70
+    },
+    "Z": {
+      "Min": 0,
+      "Max": 140
+    }
+  },
+  "ParticleRotationInfluence": "Billboard",
+  "LinearFiltering": true,
+  "LightInfluence": 1,
+  "MaxConcurrentParticles": 400,
+  "ParticleLifeSpan": {
+    "Min": 4.5,
+    "Max": 5
+  },
+  "SpawnRate": {
+    "Min": 2000,
+    "Max": 2000
+  },
+  "TotalParticles": {
+    "Min": 90,
+    "Max": 90
+  },
+  "InitialVelocity": {
+    "Speed": {
+      "Min": 0,
+      "Max": 0
+    },
+    "Yaw": {
+      "Min": 0,
+      "Max": 0
+    },
+    "Pitch": {
+      "Min": 0,
+      "Max": 0
+    }
+  },
+  "Particle": {
+    "Texture": "Particles/Textures/Smoke/Smoke_Smooth2.png",
+    "FrameSize": {
+      "Width": 64,
+      "Height": 64
+    },
+    "Animation": {
+      "0": {
+        "Scale": {
+          "X": {
+            "Min": 1,
+            "Max": 1
+          },
+          "Y": {
+            "Min": 1,
+            "Max": 1
+          }
+        },
+        "Rotation": {
+          "X": {
+            "Min": 0,
+            "Max": 0
+          },
+          "Y": {
+            "Min": 0,
+            "Max": 0
+          },
+          "Z": {
+            "Min": 0,
+            "Max": 0
+          }
+        },
+        "Color": "#a8521f",
+        "Opacity": 0
+      },
+      "25": {
+        "Opacity": 0.85
+      },
+      "75": {
+        "Opacity": 0.85
+      },
+      "100": {
+        "Opacity": 0
+      }
+    },
+    "InitialAnimationFrame": {
+      "Rotation": {
+        "X": {
+          "Min": 0,
+          "Max": 0
+        },
+        "Y": {
+          "Min": 0,
+          "Max": 0
+        },
+        "Z": {
+          "Min": 0,
+          "Max": 360
+        }
+      },
+      "Scale": {
+        "X": {
+          "Min": 28,
+          "Max": 40
+        },
+        "Y": {
+          "Min": 28,
+          "Max": 40
+        }
+      },
+      "Opacity": 1,
+      "Color": "#a8521f",
+      "FrameIndex": {
+        "Min": 0,
+        "Max": 3
+      }
+    }
+  }
+}

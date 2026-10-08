@@ -1,0 +1,22 @@
+{
+  "AudioCategory": "AudioCat_SFX",
+  "Layers": [
+    {
+      "Files": [
+        "Sounds/Environments/Global/Weather/Emitters/Thunder_Stereo_01.ogg",
+        "Sounds/Environments/Global/Weather/Emitters/Thunder_Stereo_02.ogg",
+        "Sounds/Environments/Global/Weather/Emitters/Thunder_Stereo_03.ogg"
+      ],
+      "RandomSettings": {
+        "MinVolume": -3,
+        "MinPitch": -2,
+        "MaxPitch": 2
+      },
+      "Volume": 6
+    }
+  ],
+  "PreventSoundInterruption": true,
+  "Volume": 4,
+  "MaxDistance": 160,
+  "StartAttenuationDistance": 40
+}
