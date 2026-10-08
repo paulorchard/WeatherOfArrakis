@@ -1,0 +1,18 @@
+{
+  "AudioCategory": "AudioCat_Ambient",
+  "Conditions": {
+    "Shelter": [
+      "Sheltered",
+      "Enclosed"
+    ],
+    "WeatherTagPattern": {
+      "Op": "Equals",
+      "Tag": "Coriolis_Storm"
+    }
+  },
+  "AmbientBed": {
+    "Track": "Sounds/Environments/Global/Weather/Sandstorm_Stereo_LOOP.ogg",
+    "Volume": -12,
+    "TransitionSpeed": "Fast"
+  }
+}

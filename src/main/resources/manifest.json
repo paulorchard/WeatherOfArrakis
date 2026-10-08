@@ -1,0 +1,21 @@
+{
+  "Group": "IslandCraft",
+  "Name": "IslandCraft - Weather of Arrakis",
+  "Version": "0.1.0",
+  "Description": "Coriolis storms sweep Arrakis every few days. Find shelter or be flayed.",
+  "Authors": [
+    {
+      "Name": "paulo"
+    }
+  ],
+  "ServerVersion": "*",
+  "Main": "com.paulorchard.islandcraft.weatherofarrakis.WeatherOfArrakisPlugin",
+  "Dependencies": {
+    "Hytale:Weather": "*"
+  },
+  "OptionalDependencies": {
+    "IslandCraft:IslandCraft - Dunes of Arrakis": "*"
+  },
+  "DisabledByDefault": false,
+  "IncludesAssetPack": true
+}
